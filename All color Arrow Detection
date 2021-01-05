@@ -1,0 +1,128 @@
+# Python code to detect an arrow (seven-sided shape) from an image. 
+import numpy as np 
+import cv2 
+import math
+
+font = cv2.FONT_HERSHEY_COMPLEX
+   
+img_2 = cv2.imread('MA.jpg')
+img_7 = cv2.imread('MA.jpg')
+
+def rescaleFrame(frame , scale = 0.5):
+    width = int(frame.shape[1] * scale)                                                                          
+    height = int(frame.shape[0] * scale)
+    dimensions = (width, height)
+
+    return cv2.resize(frame , dimensions , interpolation=cv2.INTER_AREA)         
+
+
+img2 = rescaleFrame(img_2)
+img7 = rescaleFrame(img_7)
+    
+img = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY) 
+
+# Iterating threshod value from 0 to 255 to get all colours indentified.
+
+for l_threshold in range(255):
+    
+    _,threshold = cv2.threshold(img, l_threshold, 255, cv2.THRESH_BINARY) 
+
+    contours,_= cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+   
+    for cnt in contours : 
+
+        area = cv2.contourArea(cnt) 
+        approx = cv2.approxPolyDP(cnt, 0.06 * cv2.arcLength(cnt, True), True)
+    
+        if area > 400:  
+   
+            if(len(approx) == 5): 
+
+                # Let us assume to have 5 points that we obtained from our PolyDP function
+
+                pt1x = approx.ravel()[0]             
+                pt1y = approx.ravel()[1]
+                pt2x = approx.ravel()[2] 
+                pt2y = approx.ravel()[3]
+                pt3x = approx.ravel()[4] 
+                pt3y = approx.ravel()[5]
+                pt4x = approx.ravel()[6] 
+                pt4y = approx.ravel()[7]
+                pt5x = approx.ravel()[8] 
+                pt5y = approx.ravel()[9]
+
+                
+                # Function to get angle between 0 and 360 degree between any 3 points
+                def getAngle(a, b, c):                 
+                    ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
+                    return ang + 360 if ang < 0 else ang
+                
+                a123 = getAngle((pt1x, pt1y), (pt2x, pt2y), (pt3x, pt3y))
+                a234 = getAngle((pt2x, pt2y), (pt3x, pt3y), (pt4x, pt4y))
+                a345 = getAngle((pt3x, pt3y), (pt4x, pt4y), (pt5x, pt5y))
+                a451 = getAngle((pt4x, pt4y), (pt5x, pt5y), (pt1x, pt1y))
+                a512 = getAngle((pt5x, pt5y), (pt1x, pt1y), (pt2x, pt2y))
+
+                list_of_pnts = [[pt1x, pt1y, pt2x, pt2y, pt3x, pt3y], [pt2x, pt2y, pt3x, pt3y, pt4x, pt4y], [pt3x, pt3y, pt4x, pt4y, pt5x, pt5y], [pt4x, pt4y, pt5x, pt5y, pt1x, pt1y], [pt5x, pt5y, pt1x, pt1y, pt2x, pt2y]]
+ 
+                list_of_angles= [a123, a234, a345, a451, a512]
+
+                print(list_of_angles)
+
+                req_angle = []
+
+                # Iterating through the angles we found to find the only accute angle
+                for i in range(len(list_of_angles)):         
+                    if list_of_angles[i] > 270 :                # We take greater than 270 because it takes external angle.   
+                        req_angle.append(list_of_angles[i])
+                
+                print(req_angle)
+
+                if len(req_angle) > 0 :
+
+                    cv2.drawContours(img2, [approx], 0, (255, 255, 255), 5)
+                    
+                    q = req_angle[0]
+
+                    t = list_of_angles.index(q)
+
+                    tpr = list_of_pnts[t]
+
+
+                    point_a = int((tpr[0] + tpr[4])/2), int((tpr[1] + tpr[5])/2)
+                    point_b = int(tpr[2]), int(tpr[3])
+
+                    pointa_x = int((tpr[0] + tpr[4])/2)
+                    pointa_y = int((tpr[1] + tpr[5])/2)
+                    pointb_x = int(tpr[2])
+                    pointb_y = int(tpr[3])
+
+                    
+                    cv2.drawContours(img2, [approx], 0, (255, 255, 255), 5)
+
+                    img2 = cv2.arrowedLine(img2, point_a, point_b, (0, 0, 0), thickness=2)        # Just for testing purpose
+
+                    angle = math.atan((((tpr[1] + tpr[5])/2) - (tpr[3])) / (((tpr[0] + tpr[4])/2) - (tpr[2])))* 180 / math.pi
+
+                    pointa_b_x = pointa_x - pointb_x
+                    pointa_b_y = pointa_y - pointb_y
+
+                    if pointa_b_x > 0 and pointa_b_y > 0 : 
+                        angle_f = angle
+
+                    if pointa_b_x < 0 and pointa_b_y > 0 :
+                        angle_f = angle + 180
+
+                    if pointa_b_x < 0 and pointa_b_y < 0 :
+                        angle_f = angle + 180
+
+                    if pointa_b_x > 0 and pointa_b_y < 0 :
+                        angle_f =  angle + 360                      
+
+
+cv2.imshow('Final', img2)
+cv2.imshow('Initial', img7)
+
+   
+if cv2.waitKey(0) & 0xFF == ord('d'):  
+    cv2.destroyAllWindows() 
