@@ -1,6 +1,6 @@
 # ARROW DETECTION AND DIRECTION USING OPEN CV
 
-How amazing it would be if we can make a machine that has a camera and has the capability to take live videos of surrounding and navigate itself to a location just with the help of arrow signs on its path . Seems Futuristic ?? No , it is a real thing now . In this project , our computer will be detecting a arrow from a random background using its webcam and will be printing angles in which direction the arrow is pointing . This is done using python3.x and OpenCV.
+How amazing it would be if we can make a machine that has a camera and has the capability to take live videos of surrounding and navigate itself to a location just with the help of arrow signs on its path . Seems Futuristic ?? No , it is a real thing now . In this project , our computer will be detecting an arrow from a random background using its webcam and will be printing direction in which the arrowhead is pointing . This is done using python3.x and OpenCV.
 
 ## TABLE OF CONTENTS
 * [General info](#general-info)
