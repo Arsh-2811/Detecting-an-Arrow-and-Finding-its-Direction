@@ -1,0 +1,180 @@
+# Importing different libraries that are required.
+import cv2 as cv
+import numpy as np  
+import math      
+
+# Definig a function that does nothing
+def nothing():       
+    pass
+
+# Defining the font used
+font = cv.FONT_HERSHEY_COMPLEX         
+
+# FOR TESTING PURPOSE ONLY
+
+    # Initialising a window and creating different trackbars on it for defining the range of red colour in hsv hue 
+    #cv.namedWindow('frame')           
+    #cv.createTrackbar('LH', 'frame', 0, 180, nothing)        
+    #cv.createTrackbar('LS', 'frame', 0, 255, nothing)
+    #cv.createTrackbar('LV', 'frame', 0, 255, nothing)
+    #cv.createTrackbar('RH', 'frame', 180, 180, nothing)
+    #Creating a trackbar for adjusting the value of epsilon in approxPolyDP function
+    #cv.createTrackbar('EPSLN', 'qwe', 0, 100, nothing)      
+
+capture = cv.VideoCapture(0)
+
+                   
+while True:    
+
+    isTrue, frame = capture.read()
+
+        # Converting bgr image to hsc to extract out red colour 
+    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV) 
+
+    # FOR TESTING PURPOSE ONLY
+    
+        #Using the trackbars that we created
+        #l_h = cv.getTrackbarPos('LH', 'frame')               
+        #l_s = cv.getTrackbarPos('LS', 'frame')
+        #l_v = cv.getTrackbarPos('LV', 'frame')
+        #r_h = cv.getTrackbarPos('RH', 'frame')
+        #epsln = cv.getTrackbarPos('EPSLN', 'qwe')                                 
+       
+        # Finding the upper and lower limit of the red colour using the trackbars that we created
+        #lower_red = np.array([l_h,  l_s, l_v])            
+        #upper_red = np.array([r_h, 255, 255])
+
+    lower_red1 = np.array([0,  70, 50])                
+    upper_red1 = np.array([10, 255, 255])              
+    
+    # Masking the hsv frame according to the lower and upper values we defined above
+    mask1 = cv.inRange(hsv, lower_red1, upper_red1)       
+
+    #Creating a second mask for proper detection of red colour
+    lower_red2 = np.array([170,  70, 50])                
+    upper_red2 = np.array([180, 255, 255])              
+  
+    mask2 = cv.inRange(hsv, lower_red2, upper_red2)       
+    
+    #Merging both the masks to create the roper mask
+    mask = mask1 + mask2
+
+    #Removing noise by using erode function and making kernels that are  used to clear black square of 5 by 5 pixels
+    kernel = np.ones((5,5), np.uint8)                 
+    mask = cv.erode(mask, kernel)                      
+
+    #Finding contours in the image
+    contours, hierarchy = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)           
+
+    # Iterating through Each contour and removing more noise by taking only those contours that have area greater that 400 pixels.
+    for cnt in contours :                                                      
+
+        area = cv.contourArea(cnt)                                             
+        approx = cv.approxPolyDP(cnt, 0.03*cv.arcLength(cnt, True), True)    
+        
+        if area > 400 :                      
+
+            #We should get a pentagon outline of the arrow , so bounding the code to onl those contours that are 5 sided
+            if len(approx) == 5 : 
+
+                # Defining the x and y coordinates of the point from the approxPolyDP function that we created above.
+                pt1x = approx.ravel()[0]             
+                pt1y = approx.ravel()[1]
+                pt2x = approx.ravel()[2] 
+                pt2y = approx.ravel()[3]
+                pt3x = approx.ravel()[4] 
+                pt3y = approx.ravel()[5]
+                pt4x = approx.ravel()[6] 
+                pt4y = approx.ravel()[7]
+                pt5x = approx.ravel()[8] 
+                pt5y = approx.ravel()[9]
+
+                # Function to get angle between 0 and 360 degree between any 3 points
+                def getAngle(a, b, c):                 
+                    ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
+                    return ang + 360 if ang < 0 else ang
+                
+                #Finding all the angles of the pentagon .
+                a123 = getAngle((pt1x, pt1y), (pt2x, pt2y), (pt3x, pt3y))
+                a234 = getAngle((pt2x, pt2y), (pt3x, pt3y), (pt4x, pt4y))
+                a345 = getAngle((pt3x, pt3y), (pt4x, pt4y), (pt5x, pt5y))
+                a451 = getAngle((pt4x, pt4y), (pt5x, pt5y), (pt1x, pt1y))
+                a512 = getAngle((pt5x, pt5y), (pt1x, pt1y), (pt2x, pt2y))
+
+                #Making a list of points in the same order as that of points that are making the arrow.
+                list_of_pnts = [[pt1x, pt1y, pt2x, pt2y, pt3x, pt3y], [pt2x, pt2y, pt3x, pt3y, pt4x, pt4y], [pt3x, pt3y, pt4x, pt4y, pt5x, pt5y], [pt4x, pt4y, pt5x, pt5y, pt1x, pt1y], [pt5x, pt5y, pt1x, pt1y, pt2x, pt2y]]
+ 
+                #Making a list of arrows so that we can easily iterate through them in the future.
+                list_of_angles= [a123, a234, a345, a451, a512]
+
+                req_angle = []
+
+                #Iterating through the angles we found to find the only accute angle and added it to the empty list that we created above
+                for i in range(len(list_of_angles)):         
+                    if list_of_angles[i] <  80 :
+                        req_angle.append(list_of_angles[i])
+
+                
+                #If the arrow has a pentagonal outline , it should have one accute angle.
+                if len(req_angle) == 1 :
+                
+                    accute_angle = req_angle[0]
+                
+                    index_required = list_of_angles.index(accute_angle)
+
+                    #Getting the points out of which the accute angle was formed and storring it in tpr list.
+                    tpr = list_of_pnts[index_required]
+
+                    #point_a is the base of the arrow and point_b is the header of the arrow.
+                    point_a = int((tpr[0] + tpr[4])/2), int((tpr[1] + tpr[5])/2)
+                    point_b = int(tpr[2]), int(tpr[3])
+
+                    #Drawing the arrow on the frame
+                    frame = cv.arrowedLine(frame, point_a, point_b, (255, 0, 255), thickness=2)        # Just for testing purpose
+
+                    
+                    #Calculating the angle made by the arrow.
+                    angle = math.atan((((tpr[1] + tpr[5])/2) - (tpr[3])) / (((tpr[0] + tpr[4])/2) - (tpr[2])))* 180 / math.pi
+
+                    pointa_b_x = ((tpr[0] + tpr[4])/2) - (tpr[2])               
+                    pointa_b_y = ((tpr[1] + tpr[5])/2) - (tpr[3])              
+
+                    #Applying basic maths to get angle between 0 and 360 degrees and storing it in angle_f
+                    if pointa_b_x > 0 and pointa_b_y > 0 : 
+                        angle_f = angle
+
+                    if pointa_b_x < 0 and pointa_b_y > 0 :
+                        angle_f = angle + 180
+
+                    if pointa_b_x < 0 and pointa_b_y < 0 :
+                        angle_f = angle + 180
+
+                    if pointa_b_x > 0 and pointa_b_y < 0 :
+                        angle_f =  angle + 360     
+
+                    #Mentioning ranges so as to get direction of the arrowhead.
+                    if angle_f < 45 or angle_f > 315 :
+                        direction = 'LEFT'
+
+                    if 45 < angle_f < 135 :
+                        direction = 'UP'
+
+                    if 135 < angle_f < 225 :
+                        direction = 'RIGHT'
+
+                    if 225 < angle_f < 315  :
+                        direction = 'DOWN'                               
+
+                    #Printing the final calculated angle i.e. angle_f on the frame/ and the direction
+
+                    cv.putText(frame, str(int(angle_f)), (60, 60), font, 2, (0, 0, 0)) 
+                    cv.putText(frame, direction, (60, 120), font, 2, (0, 0, 0))  
+
+    cv.imshow('Frame', frame)            
+
+    # Way to break the infinite loop by pressing 'd' on the keyboard .
+    if cv.waitKey(20) & 0xFF==ord('d'):                
+        break 
+
+capture.release()                               
+cv.destroyAllWindows()
