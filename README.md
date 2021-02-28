@@ -27,5 +27,5 @@ Second generation is still in progress
 ## Inspiration
 
 ## Contact
-Created by - Arsh (arsh.sharan281@gmail.com) - feel free to contact me !
+Created by - Arsh (arsh.sharan2811@gmail.com) - feel free to contact me !
 
